@@ -1,4 +1,4 @@
-html2xml Version 0.5
+html2xml Version 0.4
 ====================
 
 Description
@@ -7,28 +7,26 @@ Description
 html2xml.pl generates XML from HTML. 
 Generated XML elements are :
 <div>
-<p>
 <table>
 <row>
 <cell>
 <url>
 <list>
 <item> 
-<br/>
+
 <div> can be the BODY element or a DIV element
 As everything, it's not a perfect script , so i will be pleased if you mail me bug you find.
 
 
 Ce script est fait pour extraire les données "utiles" d'un document HTML, et les sauvegardes dans un document XML dont les éléments sont :
 <div>
-<p>
 <table>
 <row>
 <cell>
 <url>
 <list>
 <item> 
-<br/>
+
 <div> comporte l'élément BODY ou les DIV du document HTML
 
 Ce script n'est pas parfait et il est donc fort possible que vous en repériez un disfonctionnement. Je serai ravi que vous m'en faisiez part dans un courriel.
@@ -42,6 +40,7 @@ Just the basic Makefile.PL stuff; i.e.:
 
 > perl Makefile.PL
 > make
+> make test
 > make install
 
 Usage

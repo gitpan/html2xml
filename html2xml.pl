@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-$VERSION = '0.4';
+$VERSION = '0.5';
 
 #------------------------------------------------------------------------------
 #
@@ -18,15 +18,18 @@ html2xml.pl - script for generating formatted XML from HTML
     cat <filename> | html2xml.pl
 
 =head1 DESCRIPTION
+
 This script was made to clean HTML documents in order to put data included in a XML native database.
 Generated XML elements are :
 <div>
 <table>
+<p>
 <row>
 <cell>
 <url>
 <list>
 <item> 
+<br/>
 
 <div> can be the BODY element or a DIV element
 As everything, it's not a perfect script , so i will be pleased if you mail me bug you find.
@@ -35,11 +38,13 @@ As everything, it's not a perfect script , so i will be pleased if you mail me b
 Ce script est fait pour extraire les données "utiles" d'un document HTML, et les sauvegardes dans un document XML dont les éléments sont :
 <div>
 <table>
+<p>
 <row>
 <cell>
 <url>
 <list>
 <item> 
+<br/>
 
 <div> comporte l'élément BODY ou les DIV du document HTML
 
@@ -59,7 +64,8 @@ any
 
 =head1 AUTHOR
 
-Francois Colombier E<lt>francois.colombier@free.fr<gt>
+Francois Colombier E<lt>francois.colombier@free.frE<gt>
+
 =head1 COPYRIGHT
 
 This script is free software; you can redistribute it and/or modify
@@ -135,6 +141,7 @@ sub get_divs
 	if(ref $$node_ref)
 	{
 	    my $tag = $$node_ref->tag;
+	   
 	    if ( $tag =~ /div/i )
 	    {
 		my @contenu=get_divs( $$node_ref );
@@ -149,48 +156,16 @@ sub get_divs
 		    pop @divs;
 		} 
 	    }
-	    elsif ($tag =~ /^table$/i )
+	    elsif($tag !~ /^img/i &&
+		  $tag !~ /^br/i)
 	    {
-		push @divs,"<table>";
-		push @divs,get_tables($$node_ref );
-		push @divs,"</table>";
-		
-	    }
-	    elsif ($tag =~ /^(ol|ul|dl)$/i )
-	    {
-
-		push @divs,"<list>";
-		push @divs,get_paragraphs($$node_ref );
-		push @divs,"</list>";
-	    }	    
-	    elsif ($tag =~ /^p$/i )
-	    {
-		my @contenu=get_paragraphs($$node_ref );
-		push @divs,"<p>";
+		my @contenu=get_paragraphs($$node_ref);
 		if(@contenu)
 		{
-		    if(@contenu != 1 
-		       ||
-		       (@contenu == 1
-			&&
-			$contenu[1] !~ /<br\/>/))
-		    {
-			push @divs,@contenu;
-			push @divs,"</p>";
-		    }
-		    else
-		    {
-			pop @divs;   
-		    }
-		}
-		else
-		{
-		    pop @divs;   
-		}
-	    }	    
-	    elsif($tag !~ /^script$/i)
-	    {
-		push @divs,get_divs($$node_ref ) unless $tag =~ /<!--/;	
+		    push @divs,"<$tag>";
+		    push @divs,@contenu;
+		    push @divs,"</$tag>";
+		}	
 	    }
 	}
 	else
@@ -222,66 +197,78 @@ sub get_paragraphs
 	if(ref $$node_ref)
 	{
 	    my $tag = $$node_ref->tag;
-	    if ( $tag =~ /^(ol|ul|dl)$/i )
+	    if($tag !~ /^a$/i &&
+	       $tag !~ /^img$/i)
 	    {
-		push @paras,get_paragraphs($$node_ref);
-		
-	    }
-	    if ( $tag =~ /^p$/i )
-	    {
-		push @paras,get_paragraphs($$node_ref);
-	
-	    }
-	    else
-	    {
-		
-		if ( $tag =~ /^(li|dt)/i )
+		my @contenu=get_paragraphs($$node_ref);
+		if(@contenu)
 		{
-		    
-		    push @paras,"<item>";
-		    push @paras,get_paragraphs($$node_ref);
-		    push @paras,"</item>";
-		}
-		
-		elsif ($tag =~ /^dd/i )
-		{
-		    my @contenu=get_paragraphs($$node_ref);
-
-		    push @paras,"<desc>";
-		    if(@contenu)
+		    my $balise="";
+		    if ( $tag =~ /^(ol|ul|dl)$/i )
 		    {
+			$balise="list";
+		    }
+		    
+		    else
+		    {
+			
+			if ( $tag =~ /^(li|dt)/i )
+			{
+			    $balise="item";
+			}
+			
+			elsif ($tag =~ /^dd/i )
+			{
+			    $balise="desc";
+			   			    
+			}
+			elsif ($tag =~ /^tr/i )
+			{
+			    $balise="row";
+			   			    
+			}
+			elsif ($tag =~ /^td/i )
+			{
+			    $balise="cell";
+			   			    
+			}
+			if($balise eq "")
+			{
+			    $balise=$tag;	
+			}
+		
+		    }
+		    if($balise !~ /^b$/i &&
+		       $balise !~ /^font$/i)
+		    {
+			push @paras,"<$balise>";
 			push @paras,@contenu;
-			push @paras,"</desc>";
+			push @paras,"</$balise>";
 		    }
 		    else
 		    {
-			pop @paras;
+			push @paras,@contenu;
 		    }
-		    
 		}
-		elsif ($tag =~ /^a$/i )
+
+	    }
+	    elsif($tag =~ /^a$/i)
+	    {
+		if(my $url = $$node_ref->attr('href'))
 		{
-		    if(my $url = $$node_ref->attr('href'))
+		    if(!(length $url ==1))
 		    {
-			if(!(length $url ==1))
+			if($url =~ /^[hf]tt?p/)#!liens internes éliminés
 			{
-			    if($url =~ /^[hf]tt?p/)#!liens internes éliminés
-			    {
-				push @paras,"<url>";
-			
-				$url =~ s/&/&amp;/g;
-				push @paras,"$url";
-				push @paras,"</url>";
-			    }
-			}	
-		    }
-		    push @paras,get_paragraphs($$node_ref);
-		    
+			    push @paras,"<url>";
+			    
+			    $url =~ s/&/&amp;/g;
+			    push @paras,"$url";
+			    push @paras,"</url>";
+			}
+		    }	
 		}
-		elsif($tag !~ /^script$/i)
-		{
-		    push @paras,get_paragraphs($$node_ref) unless $tag =~ /<!--/;
-		}
+		push @paras,get_paragraphs($$node_ref);
 		
 	    }
 	}
@@ -295,76 +282,7 @@ sub get_paragraphs
     }
     return @paras;
 }
-#------------------------------------------------------------------------------
-#
-# get_tables - routine for generating an array of table (which is array or rows)
-#              from a given node
-#
-#------------------------------------------------------------------------------
 
-sub get_tables
-{
-    my $this = shift;
-    my @tables = ();
-    
-   
-    foreach my $node_ref ($this->content_refs_list) 
-    {
-	if (ref $$node_ref)
-	{
-	    my $tag = $$node_ref->tag;
-	    if ( $tag =~ /^table$/i )
-	    {
-		push @tables,get_tables($$node_ref);
-	    }
-	    	    
-	    elsif($tag =~ /^tr$/i )
-	    {
-		push @tables,"<row>";
-		my @contenu = get_tables($$node_ref);
-		if(@contenu)
-		{
-		    push @tables,@contenu;
-		    push @tables,"</row>";
-		}	
-		else
-		{
-		    pop @tables;
-		}
-	
-	    }
-	    elsif($tag =~ /^td$/i )
-	    {
-		push @tables,"<cell>";
-		my @contenu = get_tables($$node_ref);
-		if(@contenu)
-		{
-		    push @tables,@contenu;
-		    push @tables,"</cell>";
-		}	
-		else
-		{
-		    pop @tables;
-		}
-	    }
-	    elsif($tag !~ /^script$/i)
-	    {
-		push @tables,get_divs($$node_ref) unless $tag =~ /<!--/ ; 
-	    }
-	    
-	}
-	else
-	{
-	    
-	    my $contenu = $$node_ref;
-	    $contenu =~ s/(&|<|>)/$equiv{$1}/g;
-	    $contenu =~ s/\n/<br\/>/g;
-	    push @tables, "<br/>".$contenu unless ($$node_ref =~ /<!--/ or $$node_ref !~ /\S/ or $$node_ref !~ /^\c.?$/);
-	}
-	
-    }
-return @tables;
-}
 #------------------------------------------------------------------------------
 #
 # Main
