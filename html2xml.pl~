@@ -132,9 +132,10 @@ BEGIN {
 sub get_divs
 {
     my $this = shift;
+    # array to save divs in
     my @divs = ();
        
-    # iterate children ...
+    # iterate though my children ...
     foreach my $node_ref ($this->content_refs_list) 
     {
 	if(ref $$node_ref)
@@ -323,11 +324,12 @@ sub get_paragraphs
 # Main
 #
 #------------------------------------------------------------------------------
-
+$ARGV[0] =~ /a_traiter\/(.*)$/;
+my $url=$1;
 my $input = join( '', <> );
 my @doc=();
 
-
+$url =~ s/_\+_/\//g;
 eval{
 $html_tree->parse($input);
 };
@@ -356,6 +358,7 @@ foreach my $node_ref ($html_tree->content_refs_list)
     {
 	push @doc,"<?xml version=\"1.0\" encoding=\"ISO-8859-1\" standalone=\"yes\"?>";
 	push @doc,"<page>";
+	push @doc,"<src url=\"$url\"/>";
 	push @doc,"<div name=\"$tag\">";
 	
 	if( my @div=get_divs($$node_ref))
